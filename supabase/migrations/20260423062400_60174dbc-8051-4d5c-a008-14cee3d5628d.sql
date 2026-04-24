@@ -1,0 +1,1 @@
+CREATE POLICY "public read products" ON public.products FOR SELECT TO anon, authenticated USING (true);
