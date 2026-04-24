@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 interface AuthCtx {
-  user: User | null;
-  session: Session | null;
+  user: { id: number; email: string; role: string } | null;
+  session: { access_token: string } | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -14,36 +14,67 @@ interface AuthCtx {
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<{ id: number; email: string; role: string } | null>(null);
+  const [session, setSession] = useState<{ access_token: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-    return () => subscription.unsubscribe();
+    // Restore session from localStorage
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+    if (token && userData) {
+      try {
+        setSession({ access_token: token });
+        setUser(JSON.parse(userData));
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+    }
+    setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    try {
+      const res = await fetch(`${API_URL}/api/auth/signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: new Error(data.error || "Sign in failed") };
+      
+      localStorage.setItem("token", data.session.access_token);
+      localStorage.setItem("user", JSON.stringify(data.session.user));
+      setSession(data.session);
+      setUser(data.session.user);
+      return { error: null };
+    } catch (err: any) {
+      return { error: new Error(err.message || "Network error") };
+    }
   };
+
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    });
-    return { error };
+    try {
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: new Error(data.error || "Sign up failed") };
+      return { error: null };
+    } catch (err: any) {
+      return { error: new Error(err.message || "Network error") };
+    }
   };
-  const signOut = async () => { await supabase.auth.signOut(); };
+
+  const signOut = async () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setSession(null);
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>

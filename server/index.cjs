@@ -96,6 +96,22 @@ app.get('/api/auth/session', authMiddleware, (req, res) => {
   res.json({ user: req.user });
 });
 
+// Password reset endpoint (for development only)
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    await query('UPDATE users SET password_hash = ? WHERE email = ?', [hash, email]);
+    res.json({ message: 'Password updated' });
+  } catch (err) {
+    console.error('Password reset error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===================== CATEGORIES =====================
 
 app.get('/api/categories', authMiddleware, async (req, res) => {

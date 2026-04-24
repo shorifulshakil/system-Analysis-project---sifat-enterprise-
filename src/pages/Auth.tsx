@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 const USERNAME_DOMAIN = "gmail.com";
 const DEMO_USERNAME = "admin@gmail.com";
@@ -25,15 +24,6 @@ const Auth = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [seeding, setSeeding] = useState(true);
-
-  useEffect(() => {
-    // Idempotently seed the demo admin so it can be used right away
-    supabase.functions
-      .invoke("seed-admin")
-      .catch(() => {})
-      .finally(() => setSeeding(false));
-  }, []);
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -104,9 +94,9 @@ const Auth = () => {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={mode === "signin" ? "current-password" : "new-password"} />
             </div>
-            <Button type="submit" className="w-full bg-gradient-primary hover:opacity-95" disabled={busy || seeding}>
-              {(busy || seeding) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {seeding ? "Preparing…" : mode === "signin" ? "Sign in" : "Create account"}
+            <Button type="submit" className="w-full bg-gradient-primary hover:opacity-95" disabled={busy}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
 
