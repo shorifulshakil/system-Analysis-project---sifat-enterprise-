@@ -18,14 +18,14 @@ import type { Employee, SalaryRecord } from "@/integrations/supabase/types-helpe
 type SalaryForm = {
   employee_id: string;
   record_type: "payment" | "increment" | "decrement";
-  amount: number;
+  amount: number | string;
   record_date: string;
   notes: string;
 };
 const emptyForm: SalaryForm = {
   employee_id: "",
   record_type: "payment",
-  amount: 0,
+  amount: "",
   record_date: new Date().toISOString().slice(0, 10),
   notes: "",
 };
@@ -56,23 +56,26 @@ const Salary = () => {
   }, [employees]);
 
   const openNew = (employeeId?: string) => {
-    setForm({ ...emptyForm, employee_id: employeeId ?? "" });
+    setForm({ ...emptyForm, employee_id: employeeId ? String(employeeId) : "" });
     setOpen(true);
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.employee_id) return toast.error("Select an employee");
+    const amount = Number(form.amount);
+    if (!amount || amount <= 0) return toast.error("Enter a valid amount");
     const { error } = await supabase.from("salary_records").insert({
       employee_id: form.employee_id,
       record_type: form.record_type,
-      amount: form.amount,
+      amount,
       record_date: form.record_date,
       notes: form.notes || null,
     });
     if (error) return toast.error(error.message);
     toast.success("Salary record saved");
     setOpen(false);
+    setForm(emptyForm);
     load();
   };
 
@@ -275,11 +278,15 @@ const Salary = () => {
             <div className="space-y-2">
               <Label>Employee *</Label>
               <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select employee">
+                    {form.employee_id && empMap.get(form.employee_id)?.name}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {employees.map((e) => (
                     <SelectItem key={e.id} value={e.id}>
-                      {e.name} — ৳ {formatBDT(Number(e.current_salary))}
+                      {e.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -301,7 +308,7 @@ const Salary = () => {
               <div className="space-y-2">
                 <Label>Amount (৳)</Label>
                 <Input type="number" step="0.01" required value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">

@@ -369,11 +369,20 @@ app.get('/api/salary-records', authMiddleware, async (req, res) => {
 app.post('/api/salary-records', authMiddleware, async (req, res) => {
   try {
     const { employee_id, record_type, amount, record_date, notes } = req.body;
+    const salaryAmount = Number(amount);
+    if (!employee_id || !record_type || !salaryAmount || salaryAmount <= 0) {
+      return res.status(400).json({ error: 'Employee, type and a valid amount are required' });
+    }
     const result = await query(
       'INSERT INTO salary_records (employee_id, record_type, amount, record_date, notes) VALUES (?, ?, ?, ?, ?)',
-      [employee_id, record_type, amount, record_date || new Date().toISOString().slice(0, 10), notes || null]
+      [employee_id, record_type, salaryAmount, record_date || new Date().toISOString().slice(0, 10), notes || null]
     );
-    res.json({ data: { id: result.insertId, ...req.body } });
+    if (record_type === 'increment') {
+      await query('UPDATE employees SET current_salary = current_salary + ? WHERE id = ?', [salaryAmount, employee_id]);
+    } else if (record_type === 'decrement') {
+      await query('UPDATE employees SET current_salary = GREATEST(current_salary - ?, 0) WHERE id = ?', [salaryAmount, employee_id]);
+    }
+    res.json({ data: { id: result.insertId, ...req.body, amount: salaryAmount } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -381,6 +390,14 @@ app.post('/api/salary-records', authMiddleware, async (req, res) => {
 
 app.delete('/api/salary-records/:id', authMiddleware, async (req, res) => {
   try {
+    const rows = await query('SELECT * FROM salary_records WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Salary record not found' });
+    const record = rows[0];
+    if (record.record_type === 'increment') {
+      await query('UPDATE employees SET current_salary = GREATEST(current_salary - ?, 0) WHERE id = ?', [record.amount, record.employee_id]);
+    } else if (record.record_type === 'decrement') {
+      await query('UPDATE employees SET current_salary = current_salary + ? WHERE id = ?', [record.amount, record.employee_id]);
+    }
     await query('DELETE FROM salary_records WHERE id = ?', [req.params.id]);
     res.json({ data: {} });
   } catch (err) {
