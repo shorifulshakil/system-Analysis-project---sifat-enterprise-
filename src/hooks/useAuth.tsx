@@ -3,18 +3,31 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 interface AuthCtx {
-  user: { id: number; email: string; role: string } | null;
+  user: {
+    id: number;
+    email: string;
+    role: string;
+    full_name?: string;
+    phone_number?: string;
+    nid?: string;
+    dob?: string;
+    address?: string;
+  } | null;
   session: { access_token: string } | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    details?: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string },
+  ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ id: number; email: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; email: string; role: string; nid?: string; dob?: string; address?: string } | null>(null);
   const [session, setSession] = useState<{ access_token: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,12 +67,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    details?: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string },
+  ) => {
     try {
+      const payload = { email, password, ...details };
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) return { error: new Error(data.error || "Sign up failed") };

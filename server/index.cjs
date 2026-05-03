@@ -65,7 +65,16 @@ app.post('/api/auth/signin', async (req, res) => {
     res.json({
       session: {
         access_token: token,
-        user: { id: user.id, email: user.email, role: user.role },
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          full_name: user.full_name || null,
+          phone_number: user.phone_number || null,
+          nid: user.nid_number || null,
+          dob: user.date_of_birth || null,
+          address: user.address || null,
+        },
       },
     });
   } catch (err) {
@@ -76,14 +85,17 @@ app.post('/api/auth/signin', async (req, res) => {
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, full_name, phone_number, nid, dob, address } = req.body;
+    if (!email || !password || !full_name || !phone_number || !nid || !dob || !address) {
+      return res.status(400).json({ error: 'Email, password, full name, phone number, NID, date of birth, and address are required' });
+    }
     const existing = await query('SELECT id FROM users WHERE email = ?', [email]);
     if (existing.length > 0) return res.status(400).json({ error: 'Email already exists' });
     const hash = await bcrypt.hash(password, 10);
     const username = email.split('@')[0];
-    const result = await query(
-      'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-      [username, email, hash, 'admin']
+    await query(
+      'INSERT INTO users (username, email, full_name, phone_number, password_hash, role, nid_number, date_of_birth, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [username, email, full_name, phone_number, hash, 'admin', nid, dob, address],
     );
     res.json({ message: 'Account created' });
   } catch (err) {
@@ -395,28 +407,6 @@ app.post('/api/upload', authMiddleware, async (req, res) => {
     fs.writeFileSync(filepath, buffer);
     const publicUrl = `/uploads/${filename}`;
     res.json({ data: { publicUrl } });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ===================== SEED ADMIN =====================
-
-app.post('/api/seed-admin', async (req, res) => {
-  try {
-    const existing = await query('SELECT id FROM users WHERE email = ?', ['admin@gmail.com']);
-    if (existing.length > 0) {
-      // Update password hash to bcryptjs-compatible one if needed
-      const hash = '$2b$10$mtS3q9cp1Xih59/8H4r7r.itCOTarw/ZKyxfE7.CGxEmbIzHk7KMu';
-      await query('UPDATE users SET password_hash = ? WHERE email = ?', [hash, 'admin@gmail.com']);
-      return res.json({ message: 'Admin already exists, password updated' });
-    }
-    const hash = '$2b$10$mtS3q9cp1Xih59/8H4r7r.itCOTarw/ZKyxfE7.CGxEmbIzHk7KMu';
-    await query(
-      'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-      ['admin', 'admin@gmail.com', hash, 'admin']
-    );
-    res.json({ message: 'Admin seeded' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

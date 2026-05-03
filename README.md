@@ -26,9 +26,7 @@ A complete business management system built with React, TypeScript, Tailwind CSS
 4. Click **Go** to import
 
 ### Step 3: Default Admin Login
-After importing, you can log in with:
-- **Email:** `admin@gmail.com`
-- **Password:** `admin123`
+After importing, create your own account or use the login credentials you configured in the database.
 
 ---
 
