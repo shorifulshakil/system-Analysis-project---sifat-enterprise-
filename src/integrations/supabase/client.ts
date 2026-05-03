@@ -13,8 +13,8 @@ class QueryBuilder {
   private selectFields: string = "*";
   private sortField: string | null = null;
   private sortAsc: boolean = true;
-  private filters: { field: string; value: any }[] = [];
-  private body: any = null;
+  private filters: { field: string; value: unknown }[] = [];
+  private body: unknown = null;
 
   constructor(table: string) {
     this.table = table;
@@ -32,18 +32,18 @@ class QueryBuilder {
     return this;
   }
 
-  eq(field: string, value: any) {
+  eq(field: string, value: unknown) {
     this.filters.push({ field, value });
     return this;
   }
 
-  insert(data: any) {
+  insert(data: unknown) {
     this.operation = "insert";
     this.body = data;
     return this;
   }
 
-  update(data: any) {
+  update(data: unknown) {
     this.operation = "update";
     this.body = data;
     return this;
@@ -54,7 +54,7 @@ class QueryBuilder {
     return this;
   }
 
-  then(resolve: any, reject: any) {
+  then(resolve: (value: unknown) => unknown, reject: (reason?: unknown) => unknown) {
     return this.execute().then(resolve, reject);
   }
 
@@ -109,7 +109,7 @@ class QueryBuilder {
         this.sortField &&
         Array.isArray(result)
       ) {
-        result = [...result].sort((a: any, b: any) => {
+        result = [...result].sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
           const aVal = a[this.sortField!];
           const bVal = b[this.sortField!];
           if (aVal === null || aVal === undefined)
@@ -123,15 +123,15 @@ class QueryBuilder {
       }
 
       return { data: result, error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return { data: null, error: err };
     }
   }
 }
 
-const authListeners = new Set<(event: string, session: any) => void>();
+const authListeners = new Set<(event: string, session: unknown) => void>();
 
-const notifyAuthChange = (event: string, session: any) => {
+const notifyAuthChange = (event: string, session: unknown) => {
   authListeners.forEach((cb) => cb(event, session));
 };
 
@@ -181,7 +181,7 @@ const auth = {
         data: { session: data.session, user: data.session.user },
         error: null,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return { data: { session: null, user: null }, error: err };
     }
   },
@@ -193,7 +193,7 @@ const auth = {
   }: {
     email: string;
     password: string;
-    options?: any;
+    options?: unknown;
   }) {
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
@@ -205,7 +205,7 @@ const auth = {
       if (!res.ok)
         return { error: new Error(data.error || "Sign up failed") };
       return { error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return { error: err };
     }
   },
@@ -229,7 +229,7 @@ const auth = {
     }
   },
 
-  onAuthStateChange(callback: (event: string, session: any) => void) {
+  onAuthStateChange(callback: (event: string, session: unknown) => void) {
     authListeners.add(callback);
 
     this.getSession().then(({ data }) => {
@@ -295,7 +295,7 @@ const storage = {
   },
 };
 
-export const supabase: any = {
+export const supabase: unknown = {
   from(table: string) {
     return new QueryBuilder(table);
   },

@@ -62,8 +62,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(data.session);
       setUser(data.session.user);
       return { error: null };
-    } catch (err: any) {
-      return { error: new Error(err.message || "Network error") };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error("Network error");
+      return { error };
     }
   };
 
@@ -82,8 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await res.json();
       if (!res.ok) return { error: new Error(data.error || "Sign up failed") };
       return { error: null };
-    } catch (err: any) {
-      return { error: new Error(err.message || "Network error") };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error("Network error");
+      return { error };
     }
   };
 
