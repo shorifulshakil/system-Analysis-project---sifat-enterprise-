@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { exportToCSV, formatBDT } from "@/lib/csv";
 import type { Product, ReturnDamage } from "@/integrations/supabase/types-helper";
 
-type Form = { product_ref: string; quantity: number; reason: 'Return' | 'Damage'; loss_amount: number; event_date: string };
-const empty: Form = { product_ref: "", quantity: 1, reason: "Return", loss_amount: 0, event_date: new Date().toISOString().slice(0, 10) };
+type Form = { product_ref: number; quantity: number; reason: 'Return' | 'Damage'; loss_amount: number; event_date: string };
+const empty: Form = { product_ref: 0, quantity: 1, reason: "Return", loss_amount: 0, event_date: new Date().toISOString().slice(0, 10) };
 
 const Returns = () => {
   const [items, setItems] = useState<ReturnDamage[]>([]);
@@ -37,8 +37,9 @@ const Returns = () => {
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
   const onProduct = (id: string) => {
-    const p = productMap.get(id);
-    setForm((f) => ({ ...f, product_ref: id, loss_amount: p ? Number(p.buying_price) * f.quantity : 0 }));
+    const numId = Number(id);
+    const p = productMap.get(numId);
+    setForm((f) => ({ ...f, product_ref: numId, loss_amount: p ? Number(p.buying_price) * f.quantity : 0 }));
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -93,7 +94,7 @@ const Returns = () => {
                     <Select value={form.product_ref} onValueChange={onProduct}>
                       <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                       <SelectContent>
-                        {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {products.map((p) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

@@ -16,14 +16,14 @@ import { exportToCSV, formatBDT } from "@/lib/csv";
 import type { Employee, SalaryRecord } from "@/integrations/supabase/types-helper";
 
 type SalaryForm = {
-  employee_id: string;
+  employee_id: number;
   record_type: "payment" | "increment" | "decrement";
   amount: number | string;
   record_date: string;
   notes: string;
 };
 const emptyForm: SalaryForm = {
-  employee_id: "",
+  employee_id: 0,
   record_type: "payment",
   amount: "",
   record_date: new Date().toISOString().slice(0, 10),
@@ -50,13 +50,13 @@ const Salary = () => {
   useEffect(() => { load(); }, []);
 
   const empMap = useMemo(() => {
-    const m = new Map<string, Employee>();
+    const m = new Map<number, Employee>();
     employees.forEach((e) => m.set(e.id, e));
     return m;
   }, [employees]);
 
-  const openNew = (employeeId?: string) => {
-    setForm({ ...emptyForm, employee_id: employeeId ? String(employeeId) : "" });
+  const openNew = (employeeId?: number) => {
+    setForm({ ...emptyForm, employee_id: employeeId ?? 0 });
     setOpen(true);
   };
 
@@ -90,7 +90,7 @@ const Salary = () => {
   const filtered = records.filter((r) => {
     const emp = empMap.get(r.employee_id);
     const okSearch = !search || (emp?.name ?? "").toLowerCase().includes(search.toLowerCase());
-    const okEmp = empFilter === "all" || r.employee_id === empFilter;
+    const okEmp = empFilter === "all" || r.employee_id === Number(empFilter);
     const okType = typeFilter === "all" || r.record_type === typeFilter;
     return okSearch && okEmp && okType;
   });
@@ -203,7 +203,7 @@ const Salary = () => {
           <SelectTrigger><SelectValue placeholder="All employees" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All employees</SelectItem>
-            {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            {employees.map((e) => <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>

@@ -1,6 +1,14 @@
-// Convenience domain types for Shifat Enterprise
+// Convenience domain types for Sifat Enterprise
+// Uses MySQL INT primary keys (not UUIDs)
+export type Category = {
+  id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+};
+
 export type Product = {
-  id: string;
+  id: number;
   name: string;
   product_id: string;
   category: string;
@@ -14,8 +22,8 @@ export type Product = {
 };
 
 export type Sale = {
-  id: string;
-  product_ref: string;
+  id: number;
+  product_ref: number;
   quantity: number;
   selling_price: number;
   total_amount: number;
@@ -24,8 +32,8 @@ export type Sale = {
 };
 
 export type ReturnDamage = {
-  id: string;
-  product_ref: string;
+  id: number;
+  product_ref: number;
   quantity: number;
   reason: 'Return' | 'Damage';
   loss_amount: number;
@@ -34,7 +42,7 @@ export type ReturnDamage = {
 };
 
 export type Expense = {
-  id: string;
+  id: number;
   title: string;
   amount: number;
   category: string;
@@ -43,7 +51,7 @@ export type Expense = {
 };
 
 export type Employee = {
-  id: string;
+  id: number;
   name: string;
   mobile: string;
   address: string | null;
@@ -58,8 +66,8 @@ export type Employee = {
 };
 
 export type SalaryRecord = {
-  id: string;
-  employee_id: string;
+  id: number;
+  employee_id: number;
   record_type: 'payment' | 'increment' | 'decrement';
   amount: number;
   record_date: string;

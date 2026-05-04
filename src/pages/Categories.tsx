@@ -10,13 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Search, Tag } from "lucide-react";
 import { toast } from "sonner";
-
-type Category = {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-};
+import type { Category } from "@/integrations/supabase/types-helper";
 
 type Form = { name: string; description: string };
 const empty: Form = { name: "", description: "" };

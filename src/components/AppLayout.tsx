@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Package, Tag, ShoppingCart, RotateCcw, Receipt, Users, Wallet, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { ProfileDialog } from "@/components/ProfileDialog";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -78,10 +79,12 @@ export const AppLayout = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="px-3 py-2 mb-2">
-            <p className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</p>
+        <div className="p-4 border-t border-sidebar-border space-y-2">
+          <div className="px-3 py-2">
+            <p className="text-xs text-sidebar-foreground/60">Logged in as</p>
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.full_name || user?.email?.split("@")[0] || "User"}</p>
           </div>
+          <ProfileDialog />
           <Button
             onClick={handleSignOut}
             variant="ghost"

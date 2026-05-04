@@ -80,14 +80,35 @@ const Employees = () => {
 
   const handlePhotoUpload = async (file: File) => {
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from("employee-photos").upload(path, file);
-    if (error) { setUploading(false); return toast.error(error.message); }
-    const { data } = supabase.storage.from("employee-photos").getPublicUrl(path);
-    setForm((f) => ({ ...f, photo_url: data.publicUrl }));
-    setUploading(false);
-    toast.success("Photo uploaded");
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        const ext = file.name.split(".").pop();
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:3001/api/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ file: base64, filename }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setUploading(false);
+          return toast.error(data.error || "Upload failed");
+        }
+        setForm((f) => ({ ...f, photo_url: data.data.publicUrl }));
+        setUploading(false);
+        toast.success("Photo uploaded");
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setUploading(false);
+      toast.error("Upload failed");
+    }
   };
 
   const filtered = items.filter((e) =>

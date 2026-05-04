@@ -22,6 +22,7 @@ interface AuthCtx {
     details?: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string },
   ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  updateProfile: (details: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string }) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
@@ -96,8 +97,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  const updateProfile = async (details: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string }) => {
+    try {
+      const token = session?.access_token;
+      if (!token) return { error: new Error("Not authenticated") };
+      
+      const res = await fetch(`${API_URL}/api/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(details),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: new Error(data.error || "Update failed") };
+      
+      setUser(data.data);
+      localStorage.setItem("user", JSON.stringify(data.data));
+      return { error: null };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error("Network error");
+      return { error };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

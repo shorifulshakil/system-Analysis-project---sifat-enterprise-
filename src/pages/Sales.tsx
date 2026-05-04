@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { exportToCSV, formatBDT } from "@/lib/csv";
 import type { Product, Sale } from "@/integrations/supabase/types-helper";
 
-type Form = { product_ref: string; quantity: number; selling_price: number; sale_date: string };
-const empty: Form = { product_ref: "", quantity: 1, selling_price: 0, sale_date: new Date().toISOString().slice(0, 10) };
+type Form = { product_ref: number; quantity: number; selling_price: number; sale_date: string };
+const empty: Form = { product_ref: 0, quantity: 1, selling_price: 0, sale_date: new Date().toISOString().slice(0, 10) };
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -37,8 +37,9 @@ const Sales = () => {
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
   const onProduct = (id: string) => {
-    const p = productMap.get(id);
-    setForm((f) => ({ ...f, product_ref: id, selling_price: p ? Number(p.selling_price) : 0 }));
+    const numId = Number(id);
+    const p = productMap.get(numId);
+    setForm((f) => ({ ...f, product_ref: numId, selling_price: p ? Number(p.selling_price) : 0 }));
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -98,7 +99,7 @@ const Sales = () => {
                       <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                       <SelectContent>
                         {products.map((p) => (
-                          <SelectItem key={p.id} value={p.id} disabled={p.stock_quantity <= 0}>
+                          <SelectItem key={p.id} value={String(p.id)} disabled={p.stock_quantity <= 0}>
                             {p.name} ({p.stock_quantity} left)
                           </SelectItem>
                         ))}

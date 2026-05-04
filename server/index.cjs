@@ -143,6 +143,34 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
+// Update user profile
+app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+  try {
+    const { full_name, phone_number, nid_number, date_of_birth, address } = req.body;
+    const userId = req.user.id;
+    await query(
+      'UPDATE users SET full_name = ?, phone_number = ?, nid_number = ?, date_of_birth = ?, address = ? WHERE id = ?',
+      [full_name || null, phone_number || null, nid_number || null, date_of_birth || null, address || null, userId]
+    );
+    const rows = await query('SELECT id, email, role, full_name, phone_number, nid_number, date_of_birth, address FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const updatedUser = {
+      id: rows[0].id,
+      email: rows[0].email,
+      role: rows[0].role,
+      full_name: rows[0].full_name,
+      phone_number: rows[0].phone_number,
+      nid: rows[0].nid_number,
+      dob: rows[0].date_of_birth,
+      address: rows[0].address,
+    };
+    res.json({ data: updatedUser });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===================== CATEGORIES =====================
 
 app.get('/api/categories', authMiddleware, async (req, res) => {
