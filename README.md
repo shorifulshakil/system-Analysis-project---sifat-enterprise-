@@ -141,3 +141,10 @@ sifat-enterprise/
 ## License
 
 This project is built for Sifat Enterprise business use.
+
+---
+
+## Live Servers
+
+- **Frontend Live Server:** http://localhost:5173
+- **Backend Live Server:** http://localhost:3001

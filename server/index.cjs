@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -13,17 +13,28 @@ app.use(express.json({ limit: '10mb' }));
 const JWT_SECRET = process.env.JWT_SECRET || 'sifat-enterprise-secret-key';
 const PORT = process.env.API_PORT || 3001;
 
-// MySQL connection pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'sifat_enterprise',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+// MySQL database
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'sifat_enterprise'
 });
+
+db.connect((err) => {
+  if (err) {
+    console.error('Error connecting to MySQL:', err.message);
+  } else {
+    console.log('Connected to MySQL database.');
+    initializeDatabase();
+  }
+});
+
+// Initialize database tables
+const initializeDatabase = () => {
+  // Tables are created via database.sql import in phpMyAdmin
+  console.log('Database initialized (tables should be imported via database.sql)');
+};
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
@@ -44,9 +55,17 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Helper: run query
-const query = async (sql, params) => {
-  const [rows] = await pool.execute(sql, params);
-  return rows;
+const query = async (sql, params = []) => {
+  try {
+    const [rows] = await db.promise().query(sql, params);
+    if (sql.trim().toUpperCase().startsWith('SELECT')) {
+      return rows;
+    } else {
+      return { insertId: rows.insertId, affectedRows: rows.affectedRows };
+    }
+  } catch (err) {
+    throw err;
+  }
 };
 
 // ===================== AUTH =====================
