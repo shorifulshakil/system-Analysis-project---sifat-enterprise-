@@ -171,6 +171,40 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// Change password
+app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+    
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+    
+    const rows = await query('SELECT password_hash FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    const user = rows[0];
+    const hash = user.password_hash.replace(/^\$2y\$/, '$2a$');
+    const isValid = await bcrypt.compare(oldPassword, hash);
+    
+    if (!isValid) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+    
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await query('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, userId]);
+    
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Password change error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===================== CATEGORIES =====================
 
 app.get('/api/categories', authMiddleware, async (req, res) => {

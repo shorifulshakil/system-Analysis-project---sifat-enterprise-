@@ -23,6 +23,7 @@ interface AuthCtx {
   ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (details: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string }) => Promise<{ error: Error | null }>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
@@ -122,8 +123,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    try {
+      const token = session?.access_token;
+      if (!token) return { error: new Error("Not authenticated") };
+      
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: new Error(data.error || "Password change failed") };
+      
+      return { error: null };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error("Network error");
+      return { error };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, updateProfile, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

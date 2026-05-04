@@ -79,19 +79,22 @@ export const AppLayout = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border space-y-2">
-          <div className="px-3 py-2">
-            <p className="text-xs text-sidebar-foreground/60">Logged in as</p>
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.full_name || user?.email?.split("@")[0] || "User"}</p>
+        <div className="p-3 border-t border-sidebar-border">
+          <div className="mb-3 p-3 rounded-lg bg-sidebar-accent/40 backdrop-blur-sm">
+            <p className="text-xs text-sidebar-foreground/60 mb-1">Logged in as</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">{user?.full_name || user?.email?.split("@")[0] || "User"}</p>
+            <p className="text-xs text-sidebar-foreground/50 truncate mt-0.5">{user?.email}</p>
           </div>
-          <ProfileDialog />
-          <Button
-            onClick={handleSignOut}
-            variant="ghost"
-            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            <LogOut size={16} className="mr-2" /> Sign out
-          </Button>
+          <div className="space-y-1.5">
+            <ProfileDialog />
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              className="w-full justify-start px-2 py-2 h-auto text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-md"
+            >
+              <LogOut size={16} className="mr-2" /> Sign out
+            </Button>
+          </div>
         </div>
       </aside>
 
