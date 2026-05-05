@@ -54,6 +54,13 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+const getUserIdFromToken = (req) => {
+  const rawId = req.user?.id || req.user?.userId || req.user?.sub;
+  if (!rawId) return null;
+  if (typeof rawId === 'string' && /^\\d+$/.test(rawId)) return Number(rawId);
+  return rawId;
+};
+
 // Helper: run query
 const query = async (sql, params = []) => {
   try {
@@ -147,7 +154,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   try {
     const { full_name, phone_number, nid_number, date_of_birth, address } = req.body;
-    const userId = req.user.id;
+    const userId = getUserIdFromToken(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     console.log('Profile update for userId:', userId, 'data:', { full_name, phone_number, nid_number, date_of_birth, address });
     const result = await query(
       'UPDATE users SET full_name = ?, phone_number = ?, nid_number = ?, date_of_birth = ?, address = ? WHERE id = ?',
@@ -178,7 +186,8 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-    const userId = req.user.id;
+    const userId = getUserIdFromToken(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     
     if (!oldPassword || !newPassword) {
       return res.status(400).json({ error: 'Current password and new password are required' });
@@ -353,10 +362,25 @@ app.get('/api/sales', authMiddleware, async (req, res) => {
 app.post('/api/sales', authMiddleware, async (req, res) => {
   try {
     const { product_ref, quantity, selling_price, total_amount, sale_date } = req.body;
+    const qty = Number(quantity);
+    if (!product_ref || qty <= 0 || !selling_price) {
+      return res.status(400).json({ error: 'Product, quantity and price are required' });
+    }
+
+    const productRows = await query('SELECT stock_quantity FROM products WHERE id = ?', [product_ref]);
+    if (productRows.length === 0) return res.status(404).json({ error: 'Product not found' });
+    const stockQuantity = Number(productRows[0].stock_quantity);
+    if (stockQuantity < qty) {
+      return res.status(400).json({ error: `Only ${stockQuantity} units available` });
+    }
+
     const result = await query(
       'INSERT INTO sales (product_ref, quantity, selling_price, total_amount, sale_date) VALUES (?, ?, ?, ?, ?)',
-      [product_ref, quantity, selling_price, total_amount, sale_date || new Date().toISOString().slice(0, 10)]
+      [product_ref, qty, selling_price, total_amount, sale_date || new Date().toISOString().slice(0, 10)]
     );
+
+    await query('UPDATE products SET stock_quantity = GREATEST(stock_quantity - ?, 0) WHERE id = ?', [qty, product_ref]);
+
     res.json({ data: { id: result.insertId, ...req.body } });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -365,6 +389,10 @@ app.post('/api/sales', authMiddleware, async (req, res) => {
 
 app.delete('/api/sales/:id', authMiddleware, async (req, res) => {
   try {
+    const rows = await query('SELECT product_ref, quantity FROM sales WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Sale not found' });
+    const sale = rows[0];
+    await query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [sale.quantity, sale.product_ref]);
     await query('DELETE FROM sales WHERE id = ?', [req.params.id]);
     res.json({ data: {} });
   } catch (err) {
@@ -386,10 +414,20 @@ app.get('/api/returns', authMiddleware, async (req, res) => {
 app.post('/api/returns', authMiddleware, async (req, res) => {
   try {
     const { product_ref, quantity, reason, loss_amount, event_date } = req.body;
+    const qty = Number(quantity);
+    if (!product_ref || qty <= 0 || !reason) {
+      return res.status(400).json({ error: 'Product, quantity and reason are required' });
+    }
+
     const result = await query(
       'INSERT INTO returns_damages (product_ref, quantity, reason, loss_amount, event_date) VALUES (?, ?, ?, ?, ?)',
-      [product_ref, quantity, reason, loss_amount || 0, event_date || new Date().toISOString().slice(0, 10)]
+      [product_ref, qty, reason, loss_amount || 0, event_date || new Date().toISOString().slice(0, 10)]
     );
+
+    if (reason === 'Return') {
+      await query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [qty, product_ref]);
+    }
+
     res.json({ data: { id: result.insertId, ...req.body } });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -398,6 +436,12 @@ app.post('/api/returns', authMiddleware, async (req, res) => {
 
 app.delete('/api/returns/:id', authMiddleware, async (req, res) => {
   try {
+    const rows = await query('SELECT product_ref, quantity, reason FROM returns_damages WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Return record not found' });
+    const record = rows[0];
+    if (record.reason === 'Return') {
+      await query('UPDATE products SET stock_quantity = GREATEST(stock_quantity - ?, 0) WHERE id = ?', [record.quantity, record.product_ref]);
+    }
     await query('DELETE FROM returns_damages WHERE id = ?', [req.params.id]);
     res.json({ data: {} });
   } catch (err) {

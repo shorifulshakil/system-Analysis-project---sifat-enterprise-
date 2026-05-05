@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { API_URL, supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -87,7 +87,7 @@ const Employees = () => {
         const ext = file.name.split(".").pop();
         const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/api/upload", {
+        const res = await fetch(`${API_URL}/api/upload`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

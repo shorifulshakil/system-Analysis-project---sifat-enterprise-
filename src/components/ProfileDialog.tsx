@@ -41,6 +41,18 @@ export const ProfileDialog = () => {
     }
   }, [user?.role, open]);
 
+  useEffect(() => {
+    if (open && user) {
+      setForm({
+        full_name: user.full_name || "",
+        phone_number: user.phone_number || "",
+        nid: user.nid || "",
+        dob: user.dob || "",
+        address: user.address || "",
+      });
+    }
+  }, [open, user]);
+
   const handleLoginAs = async () => {
     if (!selectedUserId) return toast.error("Select a user");
     setLoading(true);

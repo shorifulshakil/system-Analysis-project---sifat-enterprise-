@@ -30,7 +30,11 @@ const Dashboard = () => {
       setReturns((r.data ?? []) as ReturnDamage[]);
       setLoading(false);
     };
+
     load();
+    const handleFocus = () => load();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const stats = useMemo(() => {

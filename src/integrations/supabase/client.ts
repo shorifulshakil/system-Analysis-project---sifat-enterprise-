@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 const tableMap: Record<string, string> = {
   returns_damages: "returns",
@@ -96,14 +96,20 @@ class QueryBuilder {
 
     try {
       const res = await fetch(url, { method, headers, body });
-      const data = await res.json();
-      if (!res.ok)
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+      if (!res.ok) {
         return {
           data: null,
-          error: new Error(data.error || "Request failed"),
+          error: new Error(data?.error || `Request failed with status ${res.status}`),
         };
+      }
 
-      let result = data.data;
+      let result = data?.data;
       if (
         this.operation === "select" &&
         this.sortField &&
@@ -124,7 +130,11 @@ class QueryBuilder {
 
       return { data: result, error: null };
     } catch (err: unknown) {
-      return { data: null, error: err };
+      const error = err instanceof Error ? err : new Error("Network error");
+      const message = error.message === "Failed to fetch"
+        ? `Cannot reach backend API at ${API_URL}. Start the server and refresh the app.`
+        : error.message;
+      return { data: null, error: new Error(message) };
     }
   }
 }

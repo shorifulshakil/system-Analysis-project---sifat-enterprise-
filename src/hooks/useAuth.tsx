@@ -2,6 +2,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+const normalizeApiError = (err: unknown) => {
+  const error = err instanceof Error ? err : new Error("Network error");
+  if (error.message === "Failed to fetch") {
+    return new Error(`Cannot reach backend API at ${API_URL}. Start the server and refresh the app.`);
+  }
+  return error;
+};
+
 interface AuthCtx {
   user: {
     id: number;
@@ -31,7 +39,7 @@ interface AuthCtx {
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ id: number; email: string; role: string; nid?: string; dob?: string; address?: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; email: string; role: string; full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string } | null>(null);
   const [session, setSession] = useState<{ access_token: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,8 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(data.session.user);
       return { error: null };
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error("Network error");
-      return { error };
+      return { error: normalizeApiError(err) };
     }
   };
 
@@ -88,8 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!res.ok) return { error: new Error(data.error || "Sign up failed") };
       return { error: null };
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error("Network error");
-      return { error };
+      return { error: normalizeApiError(err) };
     }
   };
 
@@ -126,8 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("user", JSON.stringify(data.data));
       return { error: null };
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error("Network error");
-      return { error };
+      return { error: normalizeApiError(err) };
     }
   };
 
@@ -149,8 +154,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { error: null };
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error("Network error");
-      return { error };
+      return { error: normalizeApiError(err) };
     }
   };
 
@@ -176,8 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(data.session.user);
       return { error: null };
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error("Network error");
-      return { error };
+      return { error: normalizeApiError(err) };
     }
   };
 
@@ -196,8 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { data: data.data, error: null };
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error("Network error");
-      return { error };
+      return { error: normalizeApiError(err) };
     }
   };
 
