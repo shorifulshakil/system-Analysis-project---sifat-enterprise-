@@ -24,6 +24,8 @@ interface AuthCtx {
   signOut: () => Promise<void>;
   updateProfile: (details: { full_name?: string; phone_number?: string; nid?: string; dob?: string; address?: string }) => Promise<{ error: Error | null }>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
+  loginAs: (userId: number) => Promise<{ error: Error | null }>;
+  getUsers: () => Promise<{ data?: any[]; error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
@@ -109,7 +111,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify(details),
+        body: JSON.stringify({
+          full_name: details.full_name,
+          phone_number: details.phone_number,
+          nid_number: details.nid,
+          date_of_birth: details.dob,
+          address: details.address,
+        }),
       });
       const data = await res.json();
       if (!res.ok) return { error: new Error(data.error || "Update failed") };
@@ -146,8 +154,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loginAs = async (userId: number) => {
+    try {
+      const token = session?.access_token;
+      if (!token) return { error: new Error("Not authenticated") };
+      
+      const res = await fetch(`${API_URL}/api/auth/login-as`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: new Error(data.error || "Login as failed") };
+      
+      localStorage.setItem("token", data.session.access_token);
+      localStorage.setItem("user", JSON.stringify(data.session.user));
+      setSession(data.session);
+      setUser(data.session.user);
+      return { error: null };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error("Network error");
+      return { error };
+    }
+  };
+
+  const getUsers = async () => {
+    try {
+      const token = session?.access_token;
+      if (!token) return { error: new Error("Not authenticated") };
+      
+      const res = await fetch(`${API_URL}/api/auth/users`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: new Error(data.error || "Failed to get users") };
+      
+      return { data: data.data, error: null };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error("Network error");
+      return { error };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, updateProfile, changePassword }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, updateProfile, changePassword, loginAs, getUsers }}>
       {children}
     </AuthContext.Provider>
   );

@@ -205,6 +205,51 @@ app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+// Login as another user (admin only)
+app.post('/api/auth/login-as', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+    
+    const rows = await query('SELECT id, email, role, full_name, phone_number, nid_number, date_of_birth, address FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    
+    const user = rows[0];
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({
+      session: {
+        access_token: token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          full_name: user.full_name || null,
+          phone_number: user.phone_number || null,
+          nid: user.nid_number || null,
+          dob: user.date_of_birth || null,
+          address: user.address || null,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('Login as error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all users (admin only)
+app.get('/api/auth/users', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+    
+    const rows = await query('SELECT id, email, role, full_name FROM users ORDER BY full_name, email');
+    res.json({ data: rows });
+  } catch (err) {
+    console.error('Get users error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===================== CATEGORIES =====================
 
 app.get('/api/categories', authMiddleware, async (req, res) => {

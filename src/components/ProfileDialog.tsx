@@ -9,9 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { User, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const ProfileDialog = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile, changePassword, loginAs, getUsers } = useAuth();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("profile");
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,27 @@ export const ProfileDialog = () => {
     newPassword: "",
     confirmPassword: "",
   });
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && open) {
+      getUsers().then(({ data, error }) => {
+        if (error) toast.error(error.message);
+        else setUsers(data || []);
+      });
+    }
+  }, [user?.role, open]);
+
+  const handleLoginAs = async () => {
+    if (!selectedUserId) return toast.error("Select a user");
+    setLoading(true);
+    const { error } = await loginAs(selectedUserId);
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Logged in as selected user");
+    setOpen(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,13 +99,18 @@ export const ProfileDialog = () => {
         </DialogHeader>
         
         <Tabs value={tab} onValueChange={setTab} className="w-full mt-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User size={16} /> Profile
             </TabsTrigger>
             <TabsTrigger value="password" className="flex items-center gap-2">
               <Lock size={16} /> Password
             </TabsTrigger>
+            {user?.role === 'admin' && (
+              <TabsTrigger value="loginAs" className="flex items-center gap-2">
+                <User size={16} /> Login As
+              </TabsTrigger>
+            )}
           </TabsList>
           
           {/* Edit Profile Tab */}
@@ -194,6 +222,36 @@ export const ProfileDialog = () => {
               </div>
             </form>
           </TabsContent>
+
+          {user?.role === 'admin' && (
+            <TabsContent value="loginAs" className="space-y-4 mt-4">
+              <div className="rounded-lg bg-yellow-50/50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 p-3">
+                <p className="text-xs text-muted-foreground">Select a user to login as. This will switch your session to that user.</p>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="user_select">Select User</Label>
+                  <Select value={selectedUserId?.toString()} onValueChange={(value) => setSelectedUserId(Number(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id.toString()}>
+                          {u.full_name || u.email} ({u.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleLoginAs} className="flex-1 bg-gradient-primary" disabled={loading || !selectedUserId}>
+                    {loading ? "Logging in..." : "Login As"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
