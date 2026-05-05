@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { exportToCSV, formatBDT } from "@/lib/csv";
 import type { Product, Sale } from "@/integrations/supabase/types-helper";
 
-type Form = { product_ref: number; quantity: number; selling_price: number; sale_date: string };
-const empty: Form = { product_ref: 0, quantity: 1, selling_price: 0, sale_date: new Date().toISOString().slice(0, 10) };
+type Form = { product_ref: number; quantity: string; selling_price: string; sale_date: string };
+const empty: Form = { product_ref: 0, quantity: "", selling_price: "", sale_date: new Date().toISOString().slice(0, 10) };
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -39,16 +39,20 @@ const Sales = () => {
   const onProduct = (id: string) => {
     const numId = Number(id);
     const p = productMap.get(numId);
-    setForm((f) => ({ ...f, product_ref: numId, selling_price: p ? Number(p.selling_price) : 0 }));
+    setForm((f) => ({ ...f, product_ref: numId, selling_price: p ? String(p.selling_price) : "" }));
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const p = productMap.get(form.product_ref);
     if (!p) return toast.error("Select a product");
-    if (form.quantity > p.stock_quantity) return toast.error(`Only ${p.stock_quantity} in stock`);
-    const total_amount = form.quantity * form.selling_price;
-    const { error } = await supabase.from("sales").insert({ ...form, total_amount });
+    const qty = Number(form.quantity);
+    const price = Number(form.selling_price);
+    if (!qty || qty <= 0) return toast.error("Quantity must be greater than 0");
+    if (!price || price <= 0) return toast.error("Price must be greater than 0");
+    if (qty > p.stock_quantity) return toast.error(`Only ${p.stock_quantity} in stock`);
+    const total_amount = qty * price;
+    const { error } = await supabase.from("sales").insert({ ...form, quantity: qty, selling_price: price, total_amount });
     if (error) return toast.error(error.message);
     toast.success("Sale recorded");
     setOpen(false); setForm(empty); load();
@@ -109,11 +113,11 @@ const Sales = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Quantity</Label>
-                      <Input type="number" min={1} required value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} />
+                      <Input type="number" min={1} required placeholder="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <Label>Selling Price (৳)</Label>
-                      <Input type="number" step="0.01" required value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: Number(e.target.value) })} />
+                      <Input type="number" step="0.01" required placeholder="0" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -122,7 +126,7 @@ const Sales = () => {
                   </div>
                   <div className="p-3 bg-muted rounded-lg flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="font-display font-bold text-lg">৳ {formatBDT(form.quantity * form.selling_price)}</span>
+                    <span className="font-display font-bold text-lg">৳ {formatBDT((Number(form.quantity) || 0) * (Number(form.selling_price) || 0))}</span>
                   </div>
                   <Button type="submit" className="w-full bg-gradient-primary">Save Sale</Button>
                 </form>
