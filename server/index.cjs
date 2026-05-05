@@ -148,11 +148,14 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   try {
     const { full_name, phone_number, nid_number, date_of_birth, address } = req.body;
     const userId = req.user.id;
-    await query(
+    console.log('Profile update for userId:', userId, 'data:', { full_name, phone_number, nid_number, date_of_birth, address });
+    const result = await query(
       'UPDATE users SET full_name = ?, phone_number = ?, nid_number = ?, date_of_birth = ?, address = ? WHERE id = ?',
       [full_name || null, phone_number || null, nid_number || null, date_of_birth || null, address || null, userId]
     );
+    console.log('Update result affectedRows:', result.affectedRows);
     const rows = await query('SELECT id, email, role, full_name, phone_number, nid_number, date_of_birth, address FROM users WHERE id = ?', [userId]);
+    console.log('Select result rows:', rows.length);
     if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
     const updatedUser = {
       id: rows[0].id,
