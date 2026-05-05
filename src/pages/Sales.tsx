@@ -29,6 +29,8 @@ const Sales = () => {
       supabase.from("sales").select("*").order("sale_date", { ascending: false }),
       supabase.from("products").select("*").order("name"),
     ]);
+    if (s.error) toast.error(`Failed to load sales: ${s.error.message}`);
+    if (p.error) toast.error(`Failed to load products: ${p.error.message}`);
     setSales((s.data ?? []) as Sale[]);
     setProducts((p.data ?? []) as Product[]);
   };
@@ -99,8 +101,14 @@ const Sales = () => {
                 <form onSubmit={submit} className="space-y-4 mt-2">
                   <div className="space-y-2">
                     <Label>Product</Label>
-                    <Select value={form.product_ref} onValueChange={onProduct}>
-                      <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                    <Select value={String(form.product_ref || "")} onValueChange={onProduct}>
+                      <SelectTrigger>
+                        {form.product_ref ? (
+                          <span>{productMap.get(form.product_ref)?.name}</span>
+                        ) : (
+                          <span className="text-muted-foreground">Select product</span>
+                        )}
+                      </SelectTrigger>
                       <SelectContent>
                         {products.map((p) => (
                           <SelectItem key={p.id} value={String(p.id)} disabled={p.stock_quantity <= 0}>
