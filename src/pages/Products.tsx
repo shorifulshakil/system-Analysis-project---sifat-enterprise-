@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fireDataChange } from "@/lib/data-refresh";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -59,14 +60,18 @@ const Products = () => {
       : await supabase.from("products").insert(payload);
     if (error) return toast.error(error.message);
     toast.success(editing ? "Product updated" : "Product added");
-    setOpen(false); load();
+    setOpen(false);
+    load();
+    fireDataChange();
   };
 
   const remove = async (p: Product) => {
     if (!confirm(`Delete ${p.name}?`)) return;
     const { error } = await supabase.from("products").delete().eq("id", p.id);
     if (error) return toast.error(error.message);
-    toast.success("Deleted"); load();
+    toast.success("Deleted");
+    load();
+    fireDataChange();
   };
 
   const filtered = items.filter((p) =>

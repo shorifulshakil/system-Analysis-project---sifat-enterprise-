@@ -7,6 +7,7 @@ import { TrendingUp, DollarSign, AlertTriangle, Package, ShoppingBag, Receipt, R
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
 import { format, startOfDay, startOfWeek, startOfMonth, subDays, parseISO } from "date-fns";
 import { formatBDT } from "@/lib/csv";
+import { addDataChangeListener } from "@/lib/data-refresh";
 import type { Product, Sale, Expense, ReturnDamage } from "@/integrations/supabase/types-helper";
 
 const Dashboard = () => {
@@ -33,8 +34,13 @@ const Dashboard = () => {
 
     load();
     const handleFocus = () => load();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    const removeRefresh = addDataChangeListener(() => load());
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      removeRefresh();
+    };
   }, []);
 
   const stats = useMemo(() => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fireDataChange } from "@/lib/data-refresh";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,14 +48,20 @@ const Returns = () => {
     if (!form.product_ref) return toast.error("Select a product");
     const { error } = await supabase.from("returns_damages").insert(form);
     if (error) return toast.error(error.message);
-    toast.success("Recorded"); setOpen(false); setForm(empty); load();
+    toast.success("Recorded");
+    setOpen(false);
+    setForm(empty);
+    load();
+    fireDataChange();
   };
 
   const remove = async (r: ReturnDamage) => {
     if (!confirm("Delete this entry?")) return;
     const { error } = await supabase.from("returns_damages").delete().eq("id", r.id);
     if (error) return toast.error(error.message);
-    toast.success("Deleted"); load();
+    toast.success("Deleted");
+    load();
+    fireDataChange();
   };
 
   const filtered = items.filter((r) => {

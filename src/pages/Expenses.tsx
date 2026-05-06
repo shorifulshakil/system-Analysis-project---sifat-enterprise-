@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fireDataChange } from "@/lib/data-refresh";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,14 +33,20 @@ const Expenses = () => {
     e.preventDefault();
     const { error } = await supabase.from("expenses").insert(form);
     if (error) return toast.error(error.message);
-    toast.success("Expense added"); setOpen(false); setForm(empty); load();
+    toast.success("Expense added");
+    setOpen(false);
+    setForm(empty);
+    load();
+    fireDataChange();
   };
 
   const remove = async (x: Expense) => {
     if (!confirm("Delete this expense?")) return;
     const { error } = await supabase.from("expenses").delete().eq("id", x.id);
     if (error) return toast.error(error.message);
-    toast.success("Deleted"); load();
+    toast.success("Deleted");
+    load();
+    fireDataChange();
   };
 
   const filtered = items.filter((x) => {
